@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Events, EmbedBuilder, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Events, EmbedBuilder } = require('discord.js');
 const express = require('express');
 const crypto = require('crypto');
 
@@ -13,7 +13,6 @@ const {
   generateState,
   createAuthUrl
 } = require('./utils');
-const { commands, handleCommands } = require('./commands');
 const { debugLog, debugDiscordEvent, debugVerification, debugOAuth2Flow } = require('./debug');
 
 // Initialize Discord client
@@ -39,32 +38,6 @@ const fortyTwoAPI = new FortyTwoAPI(
 // Store pending verifications (in production, use a proper database)
 const pendingVerifications = new Map();
 
-// Register slash commands
-async function registerCommands() {
-  try {
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-    
-    debugLog('Starting command registration');
-    console.log('Started refreshing application (/) commands.');
-
-    // Register commands for the specific guild (server) instead of globally
-    // This makes them appear immediately and only in your server
-    await rest.put(
-      Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_GUILD_ID),
-      { body: commands.map(command => command.toJSON()) }
-    );
-
-    debugLog('Command registration successful', { 
-      guildId: process.env.DISCORD_GUILD_ID,
-      commandCount: commands.length 
-    });
-    console.log('Successfully reloaded guild (/) commands.');
-  } catch (error) {
-    debugLog('Command registration failed', { error: error.message });
-    console.error('Error registering commands:', error);
-  }
-}
-
 // Discord bot events
 client.once(Events.ClientReady, async () => {
   debugDiscordEvent('Client Ready', { 
@@ -74,9 +47,6 @@ client.once(Events.ClientReady, async () => {
   });
   console.log(`Logged in as ${client.user.tag}`);
   console.log(`Bot is ready to verify 42 students!`);
-  
-  // Register slash commands
-  await registerCommands();
   
   // Set up periodic cleanup of expired verifications
   setInterval(() => {
@@ -89,20 +59,7 @@ client.once(Events.ClientReady, async () => {
   }, 5 * 60 * 1000); // Clean up every 5 minutes
 });
 
-// Handle slash command interactions
-client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
 
-  debugDiscordEvent('Command Interaction', {
-    commandName: interaction.commandName,
-    userId: interaction.user.id,
-    username: interaction.user.tag,
-    guildId: interaction.guildId,
-    channelId: interaction.channelId
-  });
-
-  await handleCommands(interaction, pendingVerifications);
-});
 
 // Handle new member joins
 client.on(Events.GuildMemberAdd, async (member) => {
