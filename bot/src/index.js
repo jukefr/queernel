@@ -46,16 +46,42 @@ async function removeCommands() {
     debugLog('Starting command removal');
     console.log('Started removing application (/) commands.');
 
+    // First, get existing commands to see what we're removing
+    try {
+      const guildCommands = await rest.get(
+        Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_GUILD_ID)
+      );
+      const globalCommands = await rest.get(
+        Routes.applicationCommands(process.env.DISCORD_CLIENT_ID)
+      );
+      
+      console.log(`Found ${guildCommands.length} guild commands and ${globalCommands.length} global commands to remove`);
+      debugLog('Existing commands found', { 
+        guildCommands: guildCommands.length,
+        globalCommands: globalCommands.length,
+        guildCommandNames: guildCommands.map(cmd => cmd.name),
+        globalCommandNames: globalCommands.map(cmd => cmd.name)
+      });
+    } catch (error) {
+      console.log('Could not fetch existing commands:', error.message);
+    }
+
     // Remove all commands for the specific guild
     await rest.put(
       Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_GUILD_ID),
       { body: [] }
     );
 
+    // Also remove global commands (in case any were registered globally)
+    await rest.put(
+      Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
+      { body: [] }
+    );
+
     debugLog('Command removal successful', { 
       guildId: process.env.DISCORD_GUILD_ID
     });
-    console.log('Successfully removed all guild (/) commands.');
+    console.log('Successfully removed all guild and global (/) commands.');
   } catch (error) {
     debugLog('Command removal failed', { error: error.message });
     console.error('Error removing commands:', error);
