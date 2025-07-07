@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Events, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Events, EmbedBuilder, REST, Routes } = require('discord.js');
 const express = require('express');
 const crypto = require('crypto');
 
@@ -38,6 +38,30 @@ const fortyTwoAPI = new FortyTwoAPI(
 // Store pending verifications (in production, use a proper database)
 const pendingVerifications = new Map();
 
+// Remove slash commands
+async function removeCommands() {
+  try {
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    
+    debugLog('Starting command removal');
+    console.log('Started removing application (/) commands.');
+
+    // Remove all commands for the specific guild
+    await rest.put(
+      Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_GUILD_ID),
+      { body: [] }
+    );
+
+    debugLog('Command removal successful', { 
+      guildId: process.env.DISCORD_GUILD_ID
+    });
+    console.log('Successfully removed all guild (/) commands.');
+  } catch (error) {
+    debugLog('Command removal failed', { error: error.message });
+    console.error('Error removing commands:', error);
+  }
+}
+
 // Discord bot events
 client.once(Events.ClientReady, async () => {
   debugDiscordEvent('Client Ready', { 
@@ -47,6 +71,9 @@ client.once(Events.ClientReady, async () => {
   });
   console.log(`Logged in as ${client.user.tag}`);
   console.log(`Bot is ready to verify 42 students!`);
+  
+  // Remove slash commands
+  await removeCommands();
   
   // Set up periodic cleanup of expired verifications
   setInterval(() => {
