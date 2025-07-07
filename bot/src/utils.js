@@ -110,7 +110,7 @@ function createWelcomeEmbed(user, authUrl) {
       },
       { 
         name: '📋 What happens next?', 
-        value: '1. Click the verification link below\n2. Log in with your 42 account\n3. Grant permission to verify your student status\n4. You\'ll receive the "42" role automatically' 
+        value: '1. Click the verification link below\n2. Log in with your 42 account\n3. Grant permission to verify your student status\n4. Review and accept the server rules\n5. You\'ll receive the "42" role automatically' 
       },
       { 
         name: '🔗 Verification Link', 
@@ -135,10 +135,11 @@ function createSuccessEmbed(userData) {
   return new EmbedBuilder()
     .setColor('#00ff00')
     .setTitle('✅ Verification Successful!')
-    .setDescription('Welcome to Queernel! You have been successfully verified as a 42 student.')
+    .setDescription('Welcome to Queernel! You have been successfully verified as a 42 student and have accepted the server rules.')
     .addFields(
       { name: '42 Login', value: userData.login, inline: true },
-      { name: 'Status', value: '✅ Verified 42 Student', inline: true }
+      { name: 'Status', value: '✅ Verified 42 Student', inline: true },
+      { name: 'Rules', value: '✅ Accepted', inline: true }
     )
     .setFooter({ text: 'Queernel Bot - 42 Student Verification' })
     .setTimestamp();

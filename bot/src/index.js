@@ -291,6 +291,203 @@ app.get('/auth/callback', async (req, res) => {
       throw new Error('Member not found in guild');
     }
 
+    // Store user data for rules acceptance step
+    pendingVerifications.set(state, {
+      ...verification,
+      userData: userData,
+      step: 'rules_pending'
+    });
+
+    debugVerification('Rules Step Initiated', verification.discordUserId, {
+      login: userData.login,
+      displayName: userData.displayname
+    });
+
+    // Send rules acceptance page
+    res.send(`
+      <html>
+        <head>
+          <title>Queernel Rules - Accept to Continue</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 50px; 
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              min-height: 100vh;
+              margin: 0;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              background: rgba(255, 255, 255, 0.1);
+              padding: 40px;
+              border-radius: 15px;
+              backdrop-filter: blur(10px);
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+            .rules-box {
+              background: rgba(255, 255, 255, 0.2);
+              padding: 30px;
+              border-radius: 10px;
+              margin: 20px 0;
+              border: 2px solid rgba(255, 255, 255, 0.3);
+            }
+            .rule-text {
+              font-size: 18px;
+              font-weight: bold;
+              margin: 20px 0;
+              line-height: 1.6;
+            }
+            .buttons {
+              display: flex;
+              gap: 20px;
+              justify-content: center;
+              margin-top: 30px;
+            }
+            .btn {
+              padding: 15px 30px;
+              border: none;
+              border-radius: 8px;
+              font-size: 16px;
+              font-weight: bold;
+              cursor: pointer;
+              text-decoration: none;
+              display: inline-block;
+              transition: all 0.3s ease;
+            }
+            .btn-accept {
+              background: #4CAF50;
+              color: white;
+            }
+            .btn-accept:hover {
+              background: #45a049;
+              transform: translateY(-2px);
+            }
+            .btn-decline {
+              background: #f44336;
+              color: white;
+            }
+            .btn-decline:hover {
+              background: #da190b;
+              transform: translateY(-2px);
+            }
+            .welcome-text {
+              font-size: 24px;
+              margin-bottom: 20px;
+            }
+            .user-info {
+              background: rgba(255, 255, 255, 0.1);
+              padding: 15px;
+              border-radius: 8px;
+              margin: 20px 0;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>🎉 Welcome to Queernel!</h1>
+            <div class="welcome-text">You have been verified as a 42 student</div>
+            
+            <div class="user-info">
+              <strong>42 Login:</strong> ${userData.login}<br>
+              <strong>Display Name:</strong> ${userData.displayname}
+            </div>
+
+            <div class="rules-box">
+              <h2>📋 Rules Acceptance Required</h2>
+              <div class="rule-text">
+                Je m'identifie comme queer / I identify as queer
+              </div>
+              <p>Please read and accept the rules above to continue with the verification process.</p>
+            </div>
+
+            <div class="buttons">
+              <a href="/auth/rules/accept?state=${state}" class="btn btn-accept">✅ Accept & Continue</a>
+              <a href="/auth/rules/decline?state=${state}" class="btn btn-decline">❌ Decline & Exit</a>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+
+  } catch (error) {
+    debugVerification('Verification Failed', verification.discordUserId, { error: error.message });
+    console.error('Verification error:', error.message);
+    
+    // Clean up
+    pendingVerifications.delete(state);
+
+    res.send(`
+      <html>
+        <head><title>Verification Failed</title></head>
+        <body>
+          <h1>❌ Verification Failed</h1>
+          <p>An error occurred during verification: ${error.message}</p>
+          <p>Please try again or contact an administrator.</p>
+        </body>
+      </html>
+    `);
+  }
+});
+
+// Rules acceptance route
+app.get('/auth/rules/accept', async (req, res) => {
+  const { state } = req.query;
+
+  debugOAuth2Flow('Rules Acceptance Requested', { state });
+
+  if (!state) {
+    debugOAuth2Flow('Rules Acceptance Missing State', { state });
+    return res.send(`
+      <html>
+        <head><title>Error</title></head>
+        <body>
+          <h1>❌ Error</h1>
+          <p>Missing state parameter.</p>
+          <p>Please try joining the server again.</p>
+        </body>
+      </html>
+    `);
+  }
+
+  // Verify state parameter
+  const verification = pendingVerifications.get(state);
+  if (!verification || verification.step !== 'rules_pending') {
+    debugOAuth2Flow('Invalid Rules State', { state, step: verification?.step });
+    return res.send(`
+      <html>
+        <head><title>Error</title></head>
+        <body>
+          <h1>❌ Error</h1>
+          <p>Invalid or expired verification request.</p>
+          <p>Please try joining the server again.</p>
+        </body>
+      </html>
+    `);
+  }
+
+  debugVerification('Rules Accepted', verification.discordUserId, {
+    login: verification.userData.login,
+    displayName: verification.userData.displayname
+  });
+
+  try {
+    // Find the member in the Discord server
+    const guild = client.guilds.cache.get(process.env.DISCORD_GUILD_ID);
+    if (!guild) {
+      debugVerification('Guild Not Found', verification.discordUserId, { guildId: process.env.DISCORD_GUILD_ID });
+      throw new Error('Guild not found');
+    }
+
+    const member = await guild.members.fetch(verification.discordUserId);
+    if (!member) {
+      debugVerification('Member Not Found', verification.discordUserId, { guildId: guild.id });
+      throw new Error('Member not found in guild');
+    }
+
     // Add the 42 role
     const role = guild.roles.cache.get(process.env.DISCORD_42_ROLE_ID);
     if (!role) {
@@ -333,7 +530,7 @@ app.get('/auth/callback', async (req, res) => {
     }
 
     // Send success message
-    const successEmbed = createSuccessEmbed(userData);
+    const successEmbed = createSuccessEmbed(verification.userData);
 
     try {
       await member.send({ embeds: [successEmbed] });
@@ -355,28 +552,48 @@ app.get('/auth/callback', async (req, res) => {
         <head>
           <title>Verification Successful</title>
           <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            .success { color: #00ff00; }
-            .container { max-width: 600px; margin: 0 auto; }
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 50px; 
+              background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+              color: white;
+              min-height: 100vh;
+              margin: 0;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              background: rgba(255, 255, 255, 0.1);
+              padding: 40px;
+              border-radius: 15px;
+              backdrop-filter: blur(10px);
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+            .success-icon {
+              font-size: 64px;
+              margin-bottom: 20px;
+            }
           </style>
         </head>
         <body>
           <div class="container">
-            <h1 class="success">✅ Verification Successful!</h1>
+            <div class="success-icon">✅</div>
+            <h1>Verification Successful!</h1>
             <h2>Welcome to Queernel!</h2>
-            <p>You have been successfully verified as a 42 student.</p>
+            <p>You have successfully accepted the rules and been verified as a 42 student.</p>
             <p>The "42" role has been added to your Discord account.</p>
             <p>You can now close this window and return to Discord.</p>
             <hr>
-            <p><small>42 Login: ${userData.login}</small></p>
+            <p><small>42 Login: ${verification.userData.login}</small></p>
           </div>
         </body>
       </html>
     `);
 
   } catch (error) {
-    debugVerification('Verification Failed', verification.discordUserId, { error: error.message });
-    console.error('Verification error:', error.message);
+    debugVerification('Rules Acceptance Failed', verification.discordUserId, { error: error.message });
+    console.error('Rules acceptance error:', error.message);
     
     // Clean up
     pendingVerifications.delete(state);
@@ -392,6 +609,96 @@ app.get('/auth/callback', async (req, res) => {
       </html>
     `);
   }
+});
+
+// Rules decline route
+app.get('/auth/rules/decline', async (req, res) => {
+  const { state } = req.query;
+
+  debugOAuth2Flow('Rules Decline Requested', { state });
+
+  if (!state) {
+    debugOAuth2Flow('Rules Decline Missing State', { state });
+    return res.send(`
+      <html>
+        <head><title>Error</title></head>
+        <body>
+          <h1>❌ Error</h1>
+          <p>Missing state parameter.</p>
+          <p>Please try joining the server again.</p>
+        </body>
+      </html>
+    `);
+  }
+
+  // Verify state parameter
+  const verification = pendingVerifications.get(state);
+  if (!verification || verification.step !== 'rules_pending') {
+    debugOAuth2Flow('Invalid Rules State', { state, step: verification?.step });
+    return res.send(`
+      <html>
+        <head><title>Error</title></head>
+        <body>
+          <h1>❌ Error</h1>
+          <p>Invalid or expired verification request.</p>
+          <p>Please try joining the server again.</p>
+        </body>
+      </html>
+    `);
+  }
+
+  debugVerification('Rules Declined', verification.discordUserId, {
+    login: verification.userData.login,
+    displayName: verification.userData.displayname
+  });
+
+  // Clean up
+  pendingVerifications.delete(state);
+
+  // Send decline page
+  res.send(`
+    <html>
+      <head>
+        <title>Verification Declined</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+          }
+          .decline-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="decline-icon">❌</div>
+          <h1>Verification Declined</h1>
+          <h2>Rules Not Accepted</h2>
+          <p>You have declined to accept the Queernel rules.</p>
+          <p>You will not receive the "42" role and cannot access all server features.</p>
+          <p>If you change your mind, you can try joining the server again.</p>
+          <hr>
+          <p><small>42 Login: ${verification.userData.login}</small></p>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // Health check endpoint
