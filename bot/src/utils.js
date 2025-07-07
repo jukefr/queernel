@@ -137,7 +137,6 @@ function createSuccessEmbed(userData) {
     .setTitle('✅ Verification Successful!')
     .setDescription('Welcome to Queernel! You have been successfully verified as a 42 student and have accepted the server rules.')
     .addFields(
-      { name: '42 Login', value: userData.login, inline: true },
       { name: 'Status', value: '✅ Verified 42 Student', inline: true },
       { name: 'Rules', value: '✅ Accepted', inline: true }
     )

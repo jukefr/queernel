@@ -214,7 +214,7 @@ async function handleVerifyCommand(interaction) {
         isActive: userData['active?']
       });
       return interaction.editReply({
-        content: `❌ ${login} is not a valid 42 student or is staff.`,
+        content: `❌ The provided login is not a valid 42 student or is staff.`,
         ephemeral: true
       });
     }
@@ -235,7 +235,7 @@ async function handleVerifyCommand(interaction) {
         .setTitle('✅ Manual Verification Successful')
         .setDescription(`Successfully verified ${user.tag} as a 42 student.`)
         .addFields(
-          { name: '42 Login', value: userData.login, inline: true },
+          { name: 'Status', value: '✅ Verified 42 Student', inline: true },
           { name: 'Campus', value: fortyTwoAPI.getPrimaryCampus(userData) || 'Unknown', inline: true },
           { name: 'Level', value: fortyTwoAPI.getCurrentLevel(userData)?.toString() || 'Unknown', inline: true }
         )
@@ -251,7 +251,6 @@ async function handleVerifyCommand(interaction) {
           .setTitle('✅ Verification Completed')
           .setDescription('You have been manually verified as a 42 student by an administrator.')
           .addFields(
-            { name: '42 Login', value: userData.login, inline: true },
             { name: 'Status', value: '✅ Verified 42 Student', inline: true }
           )
           .setFooter({ text: 'Queernel Bot - 42 Student Verification' })

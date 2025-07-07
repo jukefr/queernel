@@ -276,7 +276,7 @@ app.get('/auth/callback', async (req, res) => {
       displayName: userData.displayname
     });
 
-    console.log(`42 user verified: ${userData.login} (${userData.displayname})`);
+    console.log(`42 user verified successfully`);
 
     // Find the member in the Discord server
     const guild = client.guilds.cache.get(process.env.DISCORD_GUILD_ID);
@@ -392,8 +392,7 @@ app.get('/auth/callback', async (req, res) => {
             <div class="welcome-text">You have been verified as a 42 student</div>
             
             <div class="user-info">
-              <strong>42 Login:</strong> ${userData.login}<br>
-              <strong>Display Name:</strong> ${userData.displayname}
+              <strong>Status:</strong> ✅ Verified 42 Student
             </div>
 
             <div class="rules-box">
@@ -584,8 +583,6 @@ app.get('/auth/rules/accept', async (req, res) => {
             <p>You have successfully accepted the rules and been verified as a 42 student.</p>
             <p>The "42" role has been added to your Discord account.</p>
             <p>You can now close this window and return to Discord.</p>
-            <hr>
-            <p><small>42 Login: ${verification.userData.login}</small></p>
           </div>
         </body>
       </html>
@@ -693,8 +690,6 @@ app.get('/auth/rules/decline', async (req, res) => {
           <p>You have declined to accept the Queernel rules.</p>
           <p>You will not receive the "42" role and cannot access all server features.</p>
           <p>If you change your mind, you can try joining the server again.</p>
-          <hr>
-          <p><small>42 Login: ${verification.userData.login}</small></p>
         </div>
       </body>
     </html>
