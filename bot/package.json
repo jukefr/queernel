@@ -1,0 +1,48 @@
+{
+  "name": "queernel-42-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for Queernel server that verifies 42 students via OAuth2",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "docker:build": "docker build -t queernel-42-bot .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env queernel-42-bot",
+    "docker:compose": "docker-compose up -d",
+    "docker:compose:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop queernel-42-bot",
+    "pm2:restart": "pm2 restart queernel-42-bot",
+    "pm2:logs": "pm2 logs queernel-42-bot",
+    "pm2:status": "pm2 status",
+    "test": "echo \"No tests specified\" && exit 0",
+    "lint": "echo \"No linter configured\" && exit 0",
+    "health": "curl -f http://localhost:3000/health || exit 1"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["discord", "bot", "42", "oauth2", "queernel"],
+  "author": "Queernel Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/queernel/42-verification-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/queernel/42-verification-bot/issues"
+  },
+  "homepage": "https://github.com/queernel/42-verification-bot#readme"
+} 

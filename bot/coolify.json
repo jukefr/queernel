@@ -1,0 +1,11 @@
+{
+    "name": "Queernel Bot",
+    "build": {
+        "build_pack": "dockerfile"
+    },
+    "network": {
+        "ports": {
+            "expose": "3000"
+        }
+    }
+}
